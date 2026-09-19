@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InvoicePro - Premium Studio</title>
+  <title>InvoicePro - Responsive & Professional</title>
   
-  <!-- Premium Fonts -->
+  <!-- Premium Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
@@ -16,49 +16,45 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
 
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: { 
-            uiBg: '#09090B',
-            uiSidebar: '#121214',
-            uiBorder: '#27272A',
-            uiInput: '#18181B',
-            uiAccent: '#3B82F6',
-          }
+          colors: { bgPrimary: '#0a192f', accent: '#3b82f6', surface: '#1e293b', textMain: '#f8fafc' }
         }
       }
     }
   </script>
 
   <style>
-    body { background-color: #09090B; color: #FAFAFA; overflow: hidden; margin: 0; padding: 0; }
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #3F3F46; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #52525B; }
-
-    .input-pro { width: 100%; background-color: #18181B; border: 1px solid #27272A; color: #FAFAFA; padding: 0.625rem 0.75rem; border-radius: 0.375rem; font-size: 0.8125rem; transition: all 0.2s ease; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .input-pro:focus { border-color: #3B82F6; box-shadow: 0 0 0 1px #3B82F6; }
-    .label-pro { display: block; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em; color: #A1A1AA; font-weight: 600; margin-bottom: 0.375rem; }
-    .section-card { background: #121214; border: 1px solid #27272A; border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 1rem; }
-    .canvas-bg { background-image: radial-gradient(#27272A 1px, transparent 1px); background-size: 24px 24px; }
+    body { background-color: #0a192f; color: #f8fafc; overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a192f; }
+    ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
+    
+    .glass-panel { background-color: rgba(30, 41, 59, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(248, 250, 252, 0.08); border-radius: 1rem; }
+    .input-modern { width: 100%; background-color: rgba(10, 25, 47, 0.5); border: 1px solid rgba(248, 250, 252, 0.1); color: #f8fafc; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.3s ease; outline: none; }
+    .input-modern:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+    .input-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; margin-bottom: 0.375rem; }
+    
+    /* Ensures the invoice preview never squishes, matching 46950_2.jpg */
     .invoice-wrapper { min-width: 800px; width: 800px; }
+    
+    .ambient-glow { position: fixed; top: -10%; right: -5%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(10,25,47,0) 70%); z-index: 0; pointer-events: none; }
   </style>
 </head>
-<body class="antialiased flex flex-col h-screen">
-  <div id="root" class="h-full flex flex-col"></div>
+<body class="antialiased">
+  <div id="root"></div>
 
   <script type="text/babel">
     const { useState, useRef, useEffect } = React;
 
     const defaultData = {
       currency: 'USD',
-      fontFamily: "'Inter', sans-serif", 
+      accentColor: '#ffffff', 
+      fontFamily: "'Inter', sans-serif", // Default Professional Font
       logoImage: null,
       clientEmail: '',
       billedToCompany: 'Company Name',
@@ -86,19 +82,20 @@
       const invoiceRef = useRef(null);
       const [isGenerating, setIsGenerating] = useState(false);
       const [data, setData] = useState(defaultData);
+      
       const [templateName, setTemplateName] = useState('');
       const [savedTemplates, setSavedTemplates] = useState({});
 
       useEffect(() => {
-        lucide.createIcons();
-        const savedDraft = localStorage.getItem('invoiceDraft_v4');
-        const templates = localStorage.getItem('invoiceTemplates_v4');
+        const savedDraft = localStorage.getItem('invoiceDraft_v2');
+        const templates = localStorage.getItem('invoiceTemplates_v2');
         if (savedDraft) setData(JSON.parse(savedDraft));
         if (templates) setSavedTemplates(JSON.parse(templates));
       }, []);
 
-      useEffect(() => { lucide.createIcons(); });
-      useEffect(() => { localStorage.setItem('invoiceDraft_v4', JSON.stringify(data)); }, [data]);
+      useEffect(() => {
+        localStorage.setItem('invoiceDraft_v2', JSON.stringify(data));
+      }, [data]);
 
       const handleChange = (e) => setData({ ...data, [e.target.name]: e.target.value });
       const handleItemChange = (id, field, value) => {
@@ -117,12 +114,12 @@
       };
 
       const saveTemplate = () => {
-        if (!templateName) return alert("Enter template name");
+        if (!templateName) return alert("Please enter a template name");
         const updatedTemplates = { ...savedTemplates, [templateName]: data };
         setSavedTemplates(updatedTemplates);
-        localStorage.setItem('invoiceTemplates_v4', JSON.stringify(updatedTemplates));
+        localStorage.setItem('invoiceTemplates_v2', JSON.stringify(updatedTemplates));
         setTemplateName('');
-        alert("Template saved!");
+        alert(`Template "${templateName}" saved!`);
       };
 
       const loadTemplate = (e) => {
@@ -136,14 +133,16 @@
       const taxAmount = taxableAmount * (Number(data.taxRate) / 100);
       const total = taxableAmount + taxAmount;
       
-      const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: data.currency }).format(amount);
+      const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: data.currency }).format(amount);
+      };
 
       const handleDownloadPdf = async () => {
         setIsGenerating(true);
         const element = invoiceRef.current;
         element.style.transform = 'none'; 
         try {
-          const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#050505', useCORS: true, windowWidth: 800 });
+          const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#0a0a0a', useCORS: true, windowWidth: 800 });
           const imgData = canvas.toDataURL('image/png');
           const { jsPDF } = window.jspdf;
           const pdf = new jsPDF('p', 'mm', 'a4');
@@ -176,157 +175,153 @@
       };
 
       return (
-        <React.Fragment>
-          {/* GLOBAL TOP NAVIGATION BAR - Actions always visible here */}
-          <header className="h-16 flex-shrink-0 border-b border-uiBorder bg-uiSidebar px-4 lg:px-6 flex justify-between items-center z-30">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded bg-uiAccent flex items-center justify-center font-bold text-white shadow-lg">I</div>
-              <h1 className="text-lg font-bold tracking-tight text-white hidden sm:block">InvoicePro</h1>
-              <span className="text-[10px] text-green-400 bg-green-400/10 px-2 py-0.5 rounded border border-green-400/20 flex items-center gap-1 ml-2">
-                <i data-lucide="check-circle" className="w-3 h-3"></i> Auto-Saved
-              </span>
+        <div className="relative min-h-screen flex flex-col font-sans selection:bg-accent selection:text-white">
+          <div className="ambient-glow"></div>
+
+          {/* Header - Fully Responsive */}
+          <header className="relative z-10 p-4 lg:p-6 border-b border-white/5 bg-surface/80 backdrop-blur-md flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded bg-gradient-to-br from-accent to-blue-700 flex items-center justify-center font-bold text-white shadow-lg">I</div>
+              <h1 className="text-xl font-bold tracking-tight">Invoice<span className="text-accent">Pro</span></h1>
             </div>
-            
-            {/* Action Buttons Pinned to Top Right */}
-            <div className="flex items-center gap-3">
-              <button onClick={handleDownloadPdf} disabled={isGenerating} className="px-4 py-2 bg-uiAccent hover:bg-blue-500 text-white font-semibold rounded-md transition shadow flex items-center gap-2 disabled:opacity-50 text-sm">
-                {isGenerating ? <i data-lucide="loader-2" className="w-4 h-4 animate-spin"></i> : <i data-lucide="download" className="w-4 h-4"></i>}
-                <span className="hidden sm:inline">{isGenerating ? 'Exporting...' : 'Download PDF'}</span>
-                <span className="sm:hidden">{isGenerating ? '...' : 'PDF'}</span>
+            <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <button onClick={handleDownloadPdf} disabled={isGenerating} className="flex-1 sm:flex-none px-4 py-2.5 bg-accent hover:bg-blue-400 text-white font-bold rounded-lg transition shadow-[0_0_15px_rgba(59,130,246,0.3)] disabled:opacity-50 text-sm text-center">
+                {isGenerating ? 'Building...' : '1. Download PDF'}
               </button>
-              <button onClick={handleSendEmail} className="px-4 py-2 bg-white hover:bg-gray-200 text-black font-semibold rounded-md transition flex items-center gap-2 text-sm group relative">
-                <i data-lucide="send" className="w-4 h-4"></i>
-                <span className="hidden sm:inline">Draft Email</span>
-                <span className="sm:hidden">Email</span>
+              <button onClick={handleSendEmail} className="flex-1 sm:flex-none px-4 py-2.5 bg-surface hover:bg-gray-700 text-white font-semibold rounded-lg transition border border-white/10 text-sm flex justify-center items-center gap-2 group relative">
+                ✉️ 2. Draft Email
               </button>
             </div>
           </header>
-
-          {/* MAIN WORKSPACE */}
-          <div className="flex flex-col lg:flex-row flex-1 overflow-hidden w-full bg-uiBg font-sans text-sm">
+          
+          {/* Main Layout - Stacks on mobile, side-by-side on desktop xl */}
+          <main className="flex flex-col xl:flex-row flex-1 relative z-10 p-4 sm:p-6 lg:p-8 gap-8 max-w-[1920px] mx-auto w-full">
             
-            {/* LEFT SIDEBAR: THE EDITOR */}
-            <aside className="w-full lg:w-[420px] flex-shrink-0 flex flex-col bg-uiSidebar border-r border-uiBorder h-full z-20">
-              <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-10">
+            {/* LEFT SIDEBAR: CONFIG & CALCULATOR */}
+            <div className="w-full xl:w-[450px] shrink-0 flex flex-col gap-6">
+              
+              {/* Settings, Fonts & Templates */}
+              <div className="glass-panel p-5 sm:p-6 shadow-xl border-accent/30">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><span className="text-accent">⚙️</span> Settings & Style</h2>
                 
-                {/* Settings & Templates */}
-                <div className="section-card">
-                  <div className="flex items-center gap-2 mb-4 text-white"><i data-lucide="settings" className="w-4 h-4 text-uiAccent"></i><h2 className="font-semibold">Preferences</h2></div>
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                      <label className="label-pro">Font Style</label>
-                      <select name="fontFamily" value={data.fontFamily} onChange={handleChange} className="input-pro">
-                        <option value="'Inter', sans-serif">Inter (Clean)</option>
-                        <option value="'Roboto', sans-serif">Roboto (Tech)</option>
-                        <option value="'Montserrat', sans-serif">Montserrat</option>
-                        <option value="'Lato', sans-serif">Lato (Professional)</option>
-                        <option value="'Playfair Display', serif">Playfair (Serif)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="label-pro">Currency</label>
-                      <select name="currency" value={data.currency} onChange={handleChange} className="input-pro">
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="INR">INR (₹)</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="pt-3 border-t border-uiBorder">
-                    <label className="label-pro">Template Manager</label>
-                    <select onChange={loadTemplate} className="input-pro mb-2 text-gray-400">
-                      <option value="">Load saved template...</option>
-                      {Object.keys(savedTemplates).map(name => <option key={name} value={name}>{name}</option>)}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 border-b border-white/10 pb-4">
+                  <div>
+                    <label className="input-label">Typography</label>
+                    <select name="fontFamily" value={data.fontFamily} onChange={handleChange} className="input-modern bg-gray-800">
+                      <option value="'Inter', sans-serif">Inter (Modern & Clean)</option>
+                      <option value="'Roboto', sans-serif">Roboto (Tech & Standard)</option>
+                      <option value="'Montserrat', sans-serif">Montserrat (Geometric)</option>
+                      <option value="'Lato', sans-serif">Lato (Warm & Professional)</option>
+                      <option value="'Playfair Display', serif">Playfair (Elegant Serif)</option>
                     </select>
-                    <div className="flex gap-2">
-                      <input type="text" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Template Name" className="input-pro" />
-                      <button onClick={saveTemplate} className="bg-uiBorder hover:bg-zinc-700 px-3 rounded text-white text-xs font-medium transition">Save</button>
-                    </div>
+                  </div>
+                  <div>
+                    <label className="input-label">Currency</label>
+                    <select name="currency" value={data.currency} onChange={handleChange} className="input-modern bg-gray-800">
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                      <option value="INR">INR (₹)</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Invoice Meta */}
-                <div className="section-card">
-                  <div className="flex items-center gap-2 mb-4 text-white"><i data-lucide="file-text" className="w-4 h-4 text-uiAccent"></i><h2 className="font-semibold">Document Details</h2></div>
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div className="col-span-2">
-                      <label className="label-pro">Brand Logo</label>
-                      {data.logoImage ? (
-                        <div className="flex items-center justify-between bg-uiInput p-2 rounded-md border border-uiBorder"><img src={data.logoImage} alt="Logo" className="h-6 object-contain" /><button onClick={() => setData({ ...data, logoImage: null })} className="text-red-400 text-xs hover:text-red-300">Remove</button></div>
-                      ) : (
-                        <input type="file" accept="image/*" onChange={handleLogoUpload} className="input-pro p-1.5 text-[10px] text-gray-400 file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-zinc-700 file:text-white cursor-pointer" />
-                      )}
-                    </div>
-                    <div><label className="label-pro">Invoice #</label><input type="text" name="invoiceNumber" value={data.invoiceNumber} onChange={handleChange} className="input-pro" /></div>
-                    <div><label className="label-pro">Reference</label><input type="text" name="reference" value={data.reference} onChange={handleChange} className="input-pro" /></div>
-                    <div><label className="label-pro">Issue Date</label><input type="text" name="invoiceDate" value={data.invoiceDate} onChange={handleChange} className="input-pro" /></div>
-                    <div><label className="label-pro">Due Date</label><input type="text" name="dueDate" value={data.dueDate} onChange={handleChange} className="input-pro" /></div>
-                    <div className="col-span-2"><label className="label-pro">Project / Subject</label><input type="text" name="subject" value={data.subject} onChange={handleChange} className="input-pro" /></div>
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="input-label">Load Template</label>
+                    <select onChange={loadTemplate} className="input-modern bg-gray-800 text-gray-300">
+                      <option value="">-- Select a saved template --</option>
+                      {Object.keys(savedTemplates).map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
                   </div>
-                </div>
-
-                {/* Client Info */}
-                <div className="section-card">
-                  <div className="flex items-center gap-2 mb-4 text-white"><i data-lucide="user" className="w-4 h-4 text-uiAccent"></i><h2 className="font-semibold">Client Information</h2></div>
-                  <div className="space-y-3">
-                    <div><label className="label-pro">Client Email (For Draft)</label><input type="email" name="clientEmail" value={data.clientEmail} onChange={handleChange} placeholder="client@company.com" className="input-pro" /></div>
-                    <div><label className="label-pro">Company Name</label><input type="text" name="billedToCompany" value={data.billedToCompany} onChange={handleChange} className="input-pro" /></div>
-                    <div><label className="label-pro">Billing Address</label><textarea name="billedToAddress" value={data.billedToAddress} onChange={handleChange} className="input-pro h-14 resize-none"></textarea></div>
-                    <div><label className="label-pro">Phone Number</label><input type="text" name="billedToPhone" value={data.billedToPhone} onChange={handleChange} className="input-pro" /></div>
-                  </div>
-                </div>
-
-                {/* Line Items */}
-                <div className="section-card">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-2 text-white"><i data-lucide="list" className="w-4 h-4 text-uiAccent"></i><h2 className="font-semibold">Line Items</h2></div>
-                    <button onClick={addItem} className="text-[10px] bg-uiBorder hover:bg-zinc-700 px-2 py-1 rounded text-white transition flex items-center gap-1"><i data-lucide="plus" className="w-3 h-3"></i> Add Row</button>
-                  </div>
-                  <div className="space-y-3">
-                    {data.items.map((item) => (
-                      <div key={item.id} className="bg-uiInput/50 p-3 rounded-md border border-uiBorder relative group">
-                        <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-zinc-500 hover:text-red-400 transition"><i data-lucide="x" className="w-4 h-4"></i></button>
-                        <input type="text" value={item.name} onChange={(e) => handleItemChange(item.id, 'name', e.target.value)} placeholder="Service / Item Name" className="input-pro mb-2 bg-uiInput pr-8 font-medium" />
-                        <textarea value={item.description} onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} placeholder="Details..." className="input-pro mb-2 h-10 resize-none bg-uiInput"></textarea>
-                        <div className="flex gap-2">
-                          <div className="w-1/3"><label className="label-pro">Qty</label><input type="number" value={item.qty} onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)} className="input-pro bg-uiInput" /></div>
-                          <div className="w-2/3"><label className="label-pro">Rate</label><input type="number" value={item.rate} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} className="input-pro bg-uiInput" /></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Financials & Terms */}
-                <div className="section-card mb-0">
-                  <div className="flex items-center gap-2 mb-4 text-white"><i data-lucide="credit-card" className="w-4 h-4 text-uiAccent"></i><h2 className="font-semibold">Financials & Payment</h2></div>
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div><label className="label-pro">Tax Rate (%)</label><input type="number" name="taxRate" value={data.taxRate} onChange={handleChange} className="input-pro" /></div>
-                    <div><label className="label-pro">Discount ({data.currency})</label><input type="number" name="discount" value={data.discount} onChange={handleChange} className="input-pro" /></div>
-                  </div>
-                  <div className="space-y-3 pt-3 border-t border-uiBorder">
-                    <div><label className="label-pro">Bank Name</label><input type="text" name="bankName" value={data.bankName} onChange={handleChange} className="input-pro" /></div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div><label className="label-pro">Account #</label><input type="text" name="accountNumber" value={data.accountNumber} onChange={handleChange} className="input-pro" /></div>
-                      <div><label className="label-pro">SWIFT Code</label><input type="text" name="swiftCode" value={data.swiftCode} onChange={handleChange} className="input-pro" /></div>
-                    </div>
-                    <div><label className="label-pro">Terms</label><textarea name="terms" value={data.terms} onChange={handleChange} className="input-pro h-12 resize-none"></textarea></div>
+                  <div className="flex gap-2">
+                    <input type="text" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Save as (e.g. Client A)" className="input-modern text-xs" />
+                    <button onClick={saveTemplate} className="bg-surface hover:bg-gray-600 px-4 rounded text-white text-xs font-bold border border-white/10">Save</button>
                   </div>
                 </div>
               </div>
-            </aside>
 
-            {/* RIGHT SIDE: THE CANVAS (Live Preview) */}
-            <main className="flex-1 h-full overflow-auto bg-uiBg canvas-bg flex justify-start lg:justify-center p-8 lg:p-12 relative custom-scrollbar">
-              
-              {/* The Invoice Document (STRICT FORMAT PRESERVATION) */}
-              <div className="drop-shadow-2xl h-fit mb-20 flex-shrink-0">
+              {/* Detail Panels (Condensed for space) */}
+              <div className="glass-panel p-5 sm:p-6 shadow-xl">
+                <h2 className="text-lg font-bold mb-4 text-accent">01. Details</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <label className="input-label">Company Logo</label>
+                    {data.logoImage ? (
+                      <div className="flex items-center justify-between bg-bgPrimary/50 p-2 rounded-lg border border-white/5"><img src={data.logoImage} alt="Logo" className="h-8 object-contain" /><button onClick={() => setData({ ...data, logoImage: null })} className="text-red-400 text-xs font-bold">Remove</button></div>
+                    ) : (
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} className="input-modern p-2 text-xs" />
+                    )}
+                  </div>
+                  <div><label className="input-label">Invoice #</label><input type="text" name="invoiceNumber" value={data.invoiceNumber} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Reference</label><input type="text" name="reference" value={data.reference} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Invoice Date</label><input type="text" name="invoiceDate" value={data.invoiceDate} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Due Date</label><input type="text" name="dueDate" value={data.dueDate} onChange={handleChange} className="input-modern" /></div>
+                  <div className="sm:col-span-2"><label className="input-label">Subject</label><input type="text" name="subject" value={data.subject} onChange={handleChange} className="input-modern" /></div>
+                </div>
+              </div>
+
+              <div className="glass-panel p-5 sm:p-6 shadow-xl">
+                <h2 className="text-lg font-bold mb-4 text-accent">02. Client</h2>
+                <div className="space-y-3">
+                  <div><label className="input-label">Client Email (For Auto-Mail)</label><input type="email" name="clientEmail" value={data.clientEmail} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Company Name</label><input type="text" name="billedToCompany" value={data.billedToCompany} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Address</label><textarea name="billedToAddress" value={data.billedToAddress} onChange={handleChange} className="input-modern h-16 resize-none"></textarea></div>
+                  <div><label className="input-label">Phone</label><input type="text" name="billedToPhone" value={data.billedToPhone} onChange={handleChange} className="input-modern" /></div>
+                </div>
+              </div>
+
+              <div className="glass-panel p-5 sm:p-6 shadow-xl">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold text-accent">03. Items</h2>
+                  <button onClick={addItem} className="text-xs bg-surface hover:bg-gray-600 px-3 py-1.5 rounded text-white font-bold">+ Add</button>
+                </div>
+                <div className="space-y-4">
+                  {data.items.map((item) => (
+                    <div key={item.id} className="bg-bgPrimary/40 p-3 sm:p-4 rounded-xl border border-white/5 relative">
+                      <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-red-400 text-xs">✕</button>
+                      <input type="text" value={item.name} onChange={(e) => handleItemChange(item.id, 'name', e.target.value)} placeholder="Item Name" className="input-modern mb-2 text-xs font-bold pr-6" />
+                      <textarea value={item.description} onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} placeholder="Description" className="input-modern h-12 mb-2 text-xs resize-none"></textarea>
+                      <div className="flex gap-2">
+                        <div className="w-1/3"><label className="input-label">Qty</label><input type="number" value={item.qty} onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)} className="input-modern text-xs" /></div>
+                        <div className="w-2/3"><label className="input-label">Rate</label><input type="number" value={item.rate} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} className="input-modern text-xs" /></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="glass-panel p-5 sm:p-6 shadow-xl">
+                <h2 className="text-lg font-bold mb-4 text-accent">04. Financials</h2>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div><label className="input-label">Tax Rate (%)</label><input type="number" name="taxRate" value={data.taxRate} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Discount ({data.currency})</label><input type="number" name="discount" value={data.discount} onChange={handleChange} className="input-modern" /></div>
+                </div>
+                <div className="space-y-3 pt-4 border-t border-white/5">
+                  <div><label className="input-label">Bank Name</label><input type="text" name="bankName" value={data.bankName} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Account Number</label><input type="text" name="accountNumber" value={data.accountNumber} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">SWIFT / Routing</label><input type="text" name="swiftCode" value={data.swiftCode} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Terms</label><textarea name="terms" value={data.terms} onChange={handleChange} className="input-modern h-16 resize-none"></textarea></div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT SIDE: LIVE INVOICE PREVIEW 
+                Horizontally scrollable on small screens to strictly protect formatting 
+            */}
+            <div className="flex-1 w-full overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a]/50">
+              <div className="w-full h-full overflow-x-auto custom-scrollbar flex justify-start xl:justify-center p-4 sm:p-8">
+                
+                {/* THE INVOICE - STRICT FORMAT MATCHING 46950_2.jpg & 45396.jpg */}
                 <div 
                   ref={invoiceRef} 
-                  className="invoice-wrapper bg-[#050505] text-white p-14 relative"
+                  className="invoice-wrapper bg-[#080808] text-white p-12 sm:p-16 shadow-2xl relative"
                   style={{ fontFamily: data.fontFamily }}
                 >
+                  
                   {/* Header Area */}
                   <div className="mb-16 pt-2 flex flex-col justify-start items-start">
                     {data.logoImage ? (
@@ -334,7 +329,7 @@
                     ) : (
                       <p className="text-gray-400 text-xs font-semibold tracking-wider mb-4">Your Logo</p>
                     )}
-                    <h1 className="text-4xl font-bold tracking-widest text-white uppercase">INVOICE <span className="text-xs text-gray-500 font-normal tracking-normal normal-case ml-2">(1 of 1)</span></h1>
+                    <h1 className="text-4xl font-bold tracking-widest text-white uppercase">INVOICE <span className="text-xs text-gray-500 font-normal tracking-normal normal-case ml-2">(1 of 2)</span></h1>
                   </div>
 
                   {/* Top Grid */}
@@ -351,9 +346,9 @@
                       <p className="text-gray-500 text-[9px] mt-8 mb-2 uppercase tracking-widest font-semibold">Reference</p>
                       <p className="font-bold text-[13px] text-gray-100">{data.reference}</p>
                     </div>
-                    <div className="col-span-2 text-right flex flex-col justify-start items-end">
+                    <div className="col-span-2 text-right">
                       <p className="text-gray-500 text-[9px] mb-2 uppercase tracking-widest font-semibold">Invoice of ({data.currency})</p>
-                      <p className="text-[28px] font-bold text-white leading-none">{formatCurrency(total)}</p>
+                      <p className="text-[28px] font-bold text-white">{formatCurrency(total)}</p>
                     </div>
                   </div>
 
@@ -375,7 +370,7 @@
 
                   {/* Items Table */}
                   <div className="mb-12">
-                    <div className="flex pb-3 mb-4 border-b border-[#1A1A1A]">
+                    <div className="flex pb-3 mb-4 border-b border-gray-800">
                       <div className="w-1/2 text-gray-500 text-[9px] uppercase tracking-widest font-semibold">Item Detail</div>
                       <div className="w-1/6 text-right text-gray-500 text-[9px] uppercase tracking-widest font-semibold">Qty</div>
                       <div className="w-1/6 text-right text-gray-500 text-[9px] uppercase tracking-widest font-semibold">Rate</div>
@@ -383,7 +378,7 @@
                     </div>
                     
                     {data.items.map((item) => (
-                      <div key={item.id} className="flex py-3 border-b border-[#1A1A1A]/50">
+                      <div key={item.id} className="flex py-3 border-b border-gray-800/50">
                         <div className="w-1/2 pr-6">
                           <p className="font-bold text-[13px] text-gray-100">{item.name}</p>
                           <p className="text-gray-500 text-[11px] mt-1 leading-relaxed">{item.description}</p>
@@ -408,7 +403,7 @@
                           <span className="text-gray-200">-{formatCurrency(discountAmount)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between py-1.5 text-[13px] border-b border-[#1A1A1A] pb-3">
+                      <div className="flex justify-between py-1.5 text-[13px] border-b border-gray-800 pb-3">
                         <span className="text-gray-400">Tax ({data.taxRate}%)</span>
                         <span className="text-gray-200">{formatCurrency(taxAmount)}</span>
                       </div>
@@ -422,15 +417,18 @@
                   {/* Footer Terms */}
                   <div className="pt-8">
                     <h3 className="font-bold text-[12px] text-gray-100 mb-1">Terms & Conditions</h3>
-                    <p className="text-gray-500 text-[10px] mb-8 max-w-lg leading-relaxed">{data.terms}</p>
+                    <p className="text-gray-500 text-[10px] mb-8">{data.terms}</p>
                     
-                    <div className="grid grid-cols-[90px_1fr] gap-y-1 gap-x-4 max-w-sm">
+                    <div className="grid grid-cols-[100px_1fr] gap-y-1 gap-x-4 max-w-sm">
                       <p className="text-gray-500 text-[10px]">Bank name</p>
                       <p className="text-[11px] font-bold text-gray-200">{data.bankName}</p>
+                      
                       <p className="text-gray-500 text-[10px]">IFS code</p>
                       <p className="text-[11px] font-bold text-gray-200">{data.ifsCode}</p>
+                      
                       <p className="text-gray-500 text-[10px]">Swift code</p>
                       <p className="text-[11px] font-bold text-gray-200">{data.swiftCode}</p>
+
                       <p className="text-gray-500 text-[10px]">Account #</p>
                       <p className="text-[11px] font-bold text-gray-200">{data.accountNumber}</p>
                     </div>
@@ -438,9 +436,10 @@
 
                 </div>
               </div>
-            </main>
-          </div>
-        </React.Fragment>
+            </div>
+
+          </main>
+        </div>
       );
     }
 
