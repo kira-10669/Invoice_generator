@@ -3,24 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>InvoicePro - Modern SaaS Invoice Generator</title>
+  <title>InvoicePro - Advanced</title>
   
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- React & ReactDOM -->
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  
-  <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- PDF Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -29,12 +20,7 @@
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'sans-serif'] },
-          colors: {
-            bgPrimary: '#0a192f',
-            accent: '#3b82f6',
-            surface: '#1e293b',
-            textMain: '#f8fafc',
-          }
+          colors: { bgPrimary: '#0a192f', accent: '#3b82f6', surface: '#1e293b', textMain: '#f8fafc' }
         }
       }
     }
@@ -45,106 +31,73 @@
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #0a192f; }
     ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 10px; }
-
-    .glass-panel {
-      background-color: rgba(30, 41, 59, 0.6);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(248, 250, 252, 0.08);
-      border-radius: 1rem;
-    }
-
-    .input-modern {
-      width: 100%;
-      background-color: rgba(10, 25, 47, 0.5);
-      border: 1px solid rgba(248, 250, 252, 0.1);
-      color: #f8fafc;
-      padding: 0.75rem 1rem;
-      border-radius: 0.5rem;
-      font-size: 0.875rem;
-      transition: all 0.3s ease;
-      outline: none;
-    }
-    .input-modern:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-    }
-    .input-label {
-      display: block;
-      font-size: 0.65rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #94a3b8;
-      font-weight: 700;
-      margin-bottom: 0.375rem;
-    }
-
+    .glass-panel { background-color: rgba(30, 41, 59, 0.6); backdrop-filter: blur(16px); border: 1px solid rgba(248, 250, 252, 0.08); border-radius: 1rem; }
+    .input-modern { width: 100%; background-color: rgba(10, 25, 47, 0.5); border: 1px solid rgba(248, 250, 252, 0.1); color: #f8fafc; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; transition: all 0.3s ease; outline: none; }
+    .input-modern:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+    .input-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; margin-bottom: 0.375rem; }
     .invoice-wrapper { min-width: 800px; }
-
-    .ambient-glow {
-      position: absolute; top: -10%; right: -5%; width: 50vw; height: 50vw;
-      background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(10,25,47,0) 70%);
-      z-index: 0; pointer-events: none;
-    }
+    .ambient-glow { position: absolute; top: -10%; right: -5%; width: 50vw; height: 50vw; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(10,25,47,0) 70%); z-index: 0; pointer-events: none; }
   </style>
 </head>
 <body class="antialiased">
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useRef } = React;
+    const { useState, useRef, useEffect } = React;
+
+    // Default state template
+    const defaultData = {
+      currency: 'USD',
+      accentColor: '#ffffff', // Default white for that minimal look
+      logoImage: null,
+      clientEmail: '',
+      billedToCompany: '',
+      billedToAddress: '',
+      billedToPhone: '',
+      invoiceNumber: '#INV-001',
+      reference: '',
+      subject: '',
+      invoiceDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      dueDate: '',
+      items: [{ id: 1, name: '', description: '', qty: 1, rate: 0 }],
+      taxRate: 0,
+      discount: 0,
+      bankName: '',
+      ifsCode: '',
+      swiftCode: '',
+      accountNumber: '',
+      terms: 'Please pay within 15 days of receiving this invoice via direct wire transfer.'
+    };
 
     function App() {
       const invoiceRef = useRef(null);
       const [isGenerating, setIsGenerating] = useState(false);
-      const [showEmailModal, setShowEmailModal] = useState(false);
+      const [data, setData] = useState(defaultData);
+      
+      // Template State
+      const [templateName, setTemplateName] = useState('');
+      const [savedTemplates, setSavedTemplates] = useState({});
 
-      const [data, setData] = useState({
-        logoImage: null,
-        clientEmail: 'client@example.com',
-        billedToCompany: 'Acme Corporation',
-        billedToAddress: '123 Business Rd\nNew York, NY 10001',
-        billedToPhone: '+1 (555) 234-5678',
-        invoiceNumber: '#INV-2026-01',
-        reference: 'Q3 Retainer',
-        subject: 'Brand Design & Web Development',
-        invoiceDate: '19 Sep, 2026',
-        dueDate: '03 Oct, 2026',
-        items: [
-          {
-            id: 1,
-            name: 'UI/UX Design System',
-            description: 'Comprehensive design components and layout guidelines.',
-            qty: 1,
-            rate: 3000,
-          },
-          {
-            id: 2,
-            name: 'Frontend Implementation',
-            description: 'Responsive React and Tailwind integration.',
-            qty: 1,
-            rate: 1500,
-          }
-        ],
-        taxRate: 10,       // Automatic Tax Calculator %
-        discount: 100,     // Flat Discount Calculator $
-        bankName: 'CHASE BANK',
-        ifsCode: 'CHAS000USNY',
-        swiftCode: 'CHASUS33XXX',
-        accountNumber: '987654321011',
-        terms: 'Please pay within 14 days of receiving this invoice via direct wire transfer.'
-      });
+      // FEATURE 1: Auto-Save / Load from LocalStorage
+      useEffect(() => {
+        const savedDraft = localStorage.getItem('invoiceDraft');
+        const templates = localStorage.getItem('invoiceTemplates');
+        if (savedDraft) setData(JSON.parse(savedDraft));
+        if (templates) setSavedTemplates(JSON.parse(templates));
+      }, []);
 
+      useEffect(() => {
+        localStorage.setItem('invoiceDraft', JSON.stringify(data));
+      }, [data]);
+
+      // Handle Input Changes
       const handleChange = (e) => setData({ ...data, [e.target.name]: e.target.value });
-
       const handleItemChange = (id, field, value) => {
         const updatedItems = data.items.map(item => item.id === id ? { ...item, [field]: value } : item);
         setData({ ...data, items: updatedItems });
       };
-
       const addItem = () => setData({ ...data, items: [...data.items, { id: Date.now(), name: '', description: '', qty: 1, rate: 0 }] });
       const removeItem = (id) => setData({ ...data, items: data.items.filter(item => item.id !== id) });
-
       const handleLogoUpload = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -154,15 +107,35 @@
         }
       };
 
-      // Math calculations
+      // FEATURE 4: Template Manager
+      const saveTemplate = () => {
+        if (!templateName) return alert("Please enter a template name");
+        const updatedTemplates = { ...savedTemplates, [templateName]: data };
+        setSavedTemplates(updatedTemplates);
+        localStorage.setItem('invoiceTemplates', JSON.stringify(updatedTemplates));
+        setTemplateName('');
+        alert(`Template "${templateName}" saved!`);
+      };
+
+      const loadTemplate = (e) => {
+        const selected = e.target.value;
+        if (selected && savedTemplates[selected]) {
+          setData(savedTemplates[selected]);
+        }
+      };
+
+      // Calculations & FEATURE 2: Currency Formatter
       const subtotal = data.items.reduce((acc, item) => acc + (Number(item.qty) * Number(item.rate)), 0);
       const discountAmount = Number(data.discount) || 0;
       const taxableAmount = Math.max(0, subtotal - discountAmount);
       const taxAmount = taxableAmount * (Number(data.taxRate) / 100);
       const total = taxableAmount + taxAmount;
-      const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+      
+      const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: data.currency }).format(amount);
+      };
 
-      // PDF Generator
+      // Generate PDF
       const handleDownloadPdf = async () => {
         setIsGenerating(true);
         const element = invoiceRef.current;
@@ -176,59 +149,51 @@
           const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
           pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
           pdf.save(`Invoice_${data.invoiceNumber}.pdf`);
-        } catch(e) {
-          console.error(e);
-        } finally {
-          setIsGenerating(false);
-        }
+        } catch(e) { console.error(e); } finally { setIsGenerating(false); }
       };
 
-      // Auto-Drafted Email Sender
+      // Draft Email
       const handleSendEmail = () => {
-        const subject = encodeURIComponent(`Invoice ${data.invoiceNumber} from InvoicePro - Due ${data.dueDate}`);
+        const subject = encodeURIComponent(`Invoice ${data.invoiceNumber} for ${data.subject}`);
         const body = encodeURIComponent(
-          `Hi ${data.billedToCompany},\n\n` +
-          `Please find your invoice details below for project reference "${data.subject}".\n\n` +
-          `----------------------------------------\n` +
-          `Invoice Number: ${data.invoiceNumber}\n` +
-          `Invoice Date: ${data.invoiceDate}\n` +
-          `Due Date: ${data.dueDate}\n` +
-          `Total Amount Due: ${formatCurrency(total)}\n` +
-          `----------------------------------------\n\n` +
-          `Payment details:\n` +
-          `Bank Name: ${data.bankName}\n` +
-          `Account #: ${data.accountNumber}\n` +
-          `SWIFT: ${data.swiftCode}\n\n` +
-          `Kindly process the payment at your earliest convenience.\n\n` +
-          `Best regards,\n` +
-          `${data.billedToCompany}`
+          `Dear ${data.billedToCompany},\n\n` +
+          `I hope this email finds you well.\n\n` +
+          `Please find attached the invoice (${data.invoiceNumber}) for the recent ${data.subject} services.\n\n` +
+          `Invoice Summary:\n` +
+          `• Invoice Date: ${data.invoiceDate}\n` +
+          `• Due Date: ${data.dueDate}\n` +
+          `• Total Amount Due: ${formatCurrency(total)}\n\n` +
+          `For your convenience, payment can be made via wire transfer using the details provided within the attached document or below:\n` +
+          `• Bank Name: ${data.bankName}\n` +
+          `• Account Number: ${data.accountNumber}\n` +
+          `• SWIFT Code: ${data.swiftCode}\n\n` +
+          `If you have any questions regarding this invoice, please don't hesitate to reach out. We greatly appreciate your business!\n\n` +
+          `Best regards,\n\n` +
+          `[Your Name/Company]`
         );
         window.location.href = `mailto:${data.clientEmail}?subject=${subject}&body=${body}`;
       };
 
       return (
-        <div className="relative min-h-screen flex flex-col font-sans selection:bg-accent selection:text-white">
+        <div className="relative min-h-screen flex flex-col font-sans selection:bg-accent selection:text-white pb-20 lg:pb-0">
           <div className="ambient-glow"></div>
 
           {/* Header */}
-          <header className="relative z-10 p-6 border-b border-white/5 bg-surface/30 backdrop-blur-md flex justify-between items-center">
+          <header className="relative z-10 p-4 lg:p-6 border-b border-white/5 bg-surface/30 backdrop-blur-md flex flex-col lg:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded bg-gradient-to-br from-accent to-blue-700 flex items-center justify-center font-bold text-white shadow-lg">I</div>
               <h1 className="text-xl font-bold tracking-tight">Invoice<span className="text-accent">Pro</span></h1>
+              <span className="ml-2 text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full border border-green-500/30">Auto-Saving enabled</span>
             </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handleSendEmail} 
-                className="px-4 py-2.5 bg-surface hover:bg-gray-700 text-white font-semibold rounded-lg transition border border-white/10 text-sm flex items-center gap-2"
-              >
-                ✉️ Send to Client
+            <div className="flex flex-wrap justify-center items-center gap-3">
+              <button onClick={handleDownloadPdf} disabled={isGenerating} className="px-5 py-2.5 bg-accent hover:bg-blue-400 text-white font-bold rounded-lg transition shadow-[0_0_15px_rgba(59,130,246,0.3)] disabled:opacity-50 text-sm">
+                {isGenerating ? 'Building...' : '1. Download PDF'}
               </button>
-              <button 
-                onClick={handleDownloadPdf} 
-                disabled={isGenerating}
-                className="px-5 py-2.5 bg-accent hover:bg-blue-400 text-white font-bold rounded-lg transition shadow-[0_0_15px_rgba(59,130,246,0.3)] disabled:opacity-50 text-sm"
-              >
-                {isGenerating ? 'Building...' : 'Download PDF'}
+              <button onClick={handleSendEmail} className="px-4 py-2.5 bg-surface hover:bg-gray-700 text-white font-semibold rounded-lg transition border border-white/10 text-sm flex items-center gap-2 group relative">
+                ✉️ 2. Draft Email
+                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-gray-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                  *Remember to attach the PDF manually!
+                </span>
               </button>
             </div>
           </header>
@@ -238,6 +203,48 @@
             {/* LEFT SIDEBAR: CONFIG & CALCULATOR */}
             <div className="w-full xl:w-[450px] flex flex-col gap-6">
               
+              {/* FEATURE 2, 3 & 4: Settings & Templates */}
+              <div className="glass-panel p-6 shadow-xl border-accent/30">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><span className="text-accent">⚙️</span> Settings & Templates</h2>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4 border-b border-white/10 pb-4">
+                  <div>
+                    <label className="input-label">Currency</label>
+                    <select name="currency" value={data.currency} onChange={handleChange} className="input-modern bg-gray-800">
+                      <option value="USD">USD ($)</option>
+                      <option value="EUR">EUR (€)</option>
+                      <option value="GBP">GBP (£)</option>
+                      <option value="INR">INR (₹)</option>
+                      <option value="AUD">AUD ($)</option>
+                      <option value="CAD">CAD ($)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">Accent Color</label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" name="accentColor" value={data.accentColor} onChange={handleChange} className="h-10 w-full rounded bg-gray-800 border-none cursor-pointer" />
+                      <button onClick={() => setData({...data, accentColor: '#ffffff'})} className="text-xs text-gray-400 hover:text-white">Reset</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="input-label">Load Template</label>
+                    <select onChange={loadTemplate} className="input-modern bg-gray-800 text-gray-300">
+                      <option value="">-- Select a saved template --</option>
+                      {Object.keys(savedTemplates).map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="text" value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Template Name (e.g. Client A)" className="input-modern text-xs" />
+                    <button onClick={saveTemplate} className="bg-surface hover:bg-gray-600 px-3 rounded text-white text-xs font-bold border border-white/10">Save</button>
+                  </div>
+                </div>
+              </div>
+
               {/* Setup Panel */}
               <div className="glass-panel p-6 shadow-xl">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><span className="text-accent">01.</span> Branding & Details</h2>
@@ -253,22 +260,11 @@
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="input-label">Invoice #</label>
-                    <input type="text" name="invoiceNumber" value={data.invoiceNumber} onChange={handleChange} className="input-modern" />
-                  </div>
-                  <div>
-                    <label className="input-label">Reference</label>
-                    <input type="text" name="reference" value={data.reference} onChange={handleChange} className="input-modern" />
-                  </div>
-                  <div>
-                    <label className="input-label">Invoice Date</label>
-                    <input type="text" name="invoiceDate" value={data.invoiceDate} onChange={handleChange} className="input-modern" />
-                  </div>
-                  <div>
-                    <label className="input-label">Due Date</label>
-                    <input type="text" name="dueDate" value={data.dueDate} onChange={handleChange} className="input-modern" />
-                  </div>
+                  <div><label className="input-label">Invoice #</label><input type="text" name="invoiceNumber" value={data.invoiceNumber} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Reference</label><input type="text" name="reference" value={data.reference} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Invoice Date</label><input type="text" name="invoiceDate" value={data.invoiceDate} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Due Date</label><input type="text" name="dueDate" value={data.dueDate} onChange={handleChange} className="input-modern" /></div>
+                  <div className="col-span-2"><label className="input-label">Subject</label><input type="text" name="subject" value={data.subject} onChange={handleChange} className="input-modern" /></div>
                 </div>
               </div>
 
@@ -276,18 +272,10 @@
               <div className="glass-panel p-6 shadow-xl">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><span className="text-accent">02.</span> Client Delivery Details</h2>
                 <div className="space-y-3">
-                  <div>
-                    <label className="input-label">Client Email (For Auto-Mail)</label>
-                    <input type="email" name="clientEmail" value={data.clientEmail} onChange={handleChange} className="input-modern" />
-                  </div>
-                  <div>
-                    <label className="input-label">Company Name</label>
-                    <input type="text" name="billedToCompany" value={data.billedToCompany} onChange={handleChange} className="input-modern" />
-                  </div>
-                  <div>
-                    <label className="input-label">Address</label>
-                    <textarea name="billedToAddress" value={data.billedToAddress} onChange={handleChange} className="input-modern h-16 resize-none"></textarea>
-                  </div>
+                  <div><label className="input-label">Client Email (For Auto-Mail)</label><input type="email" name="clientEmail" value={data.clientEmail} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Company Name</label><input type="text" name="billedToCompany" value={data.billedToCompany} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Address</label><textarea name="billedToAddress" value={data.billedToAddress} onChange={handleChange} className="input-modern h-16 resize-none"></textarea></div>
+                  <div><label className="input-label">Phone</label><input type="text" name="billedToPhone" value={data.billedToPhone} onChange={handleChange} className="input-modern" /></div>
                 </div>
               </div>
 
@@ -301,29 +289,29 @@
                   {data.items.map((item) => (
                     <div key={item.id} className="bg-bgPrimary/40 p-4 rounded-xl border border-white/5 relative group">
                       <button onClick={() => removeItem(item.id)} className="absolute top-2 right-2 text-red-400 text-xs">✕</button>
-                      <input type="text" value={item.name} onChange={(e) => handleItemChange(item.id, 'name', e.target.value)} placeholder="Item Name" className="input-modern mb-2 text-xs" />
+                      <input type="text" value={item.name} onChange={(e) => handleItemChange(item.id, 'name', e.target.value)} placeholder="Item Name" className="input-modern mb-2 text-xs font-bold" />
                       <textarea value={item.description} onChange={(e) => handleItemChange(item.id, 'description', e.target.value)} placeholder="Description" className="input-modern h-12 mb-2 text-xs resize-none"></textarea>
                       <div className="flex gap-2">
-                        <input type="number" value={item.qty} onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)} placeholder="Qty" className="input-modern w-1/3 text-xs" />
-                        <input type="number" value={item.rate} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} placeholder="Rate" className="input-modern w-2/3 text-xs" />
+                        <div className="w-1/3"><label className="input-label">Qty</label><input type="number" value={item.qty} onChange={(e) => handleItemChange(item.id, 'qty', e.target.value)} className="input-modern text-xs" /></div>
+                        <div className="w-2/3"><label className="input-label">Rate</label><input type="number" value={item.rate} onChange={(e) => handleItemChange(item.id, 'rate', e.target.value)} className="input-modern text-xs" /></div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Automatic Calculator Panel (Tax & Discounts) */}
+              {/* Calculator & Bank Panel */}
               <div className="glass-panel p-6 shadow-xl">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><span className="text-accent">04.</span> Smart Calculations</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="input-label">Tax Rate (%)</label>
-                    <input type="number" name="taxRate" value={data.taxRate} onChange={handleChange} className="input-modern" />
-                  </div>
-                  <div>
-                    <label className="input-label">Flat Discount ($)</label>
-                    <input type="number" name="discount" value={data.discount} onChange={handleChange} className="input-modern" />
-                  </div>
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><span className="text-accent">04.</span> Financials & Bank</h2>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div><label className="input-label">Tax Rate (%)</label><input type="number" name="taxRate" value={data.taxRate} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Flat Discount ({data.currency})</label><input type="number" name="discount" value={data.discount} onChange={handleChange} className="input-modern" /></div>
+                </div>
+                <div className="space-y-3 pt-4 border-t border-white/5">
+                  <div><label className="input-label">Bank Name</label><input type="text" name="bankName" value={data.bankName} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Account Number</label><input type="text" name="accountNumber" value={data.accountNumber} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">SWIFT / Routing</label><input type="text" name="swiftCode" value={data.swiftCode} onChange={handleChange} className="input-modern" /></div>
+                  <div><label className="input-label">Terms & Conditions</label><textarea name="terms" value={data.terms} onChange={handleChange} className="input-modern h-16 resize-none"></textarea></div>
                 </div>
               </div>
 
@@ -332,17 +320,20 @@
             {/* RIGHT SIDE: LIVE INVOICE PREVIEW */}
             <div className="flex-1 flex justify-center items-start overflow-auto">
               <div className="overflow-x-auto w-full flex justify-center pb-12">
-                <div ref={invoiceRef} className="invoice-wrapper w-[800px] bg-[#0a0a0a] text-white p-14 shadow-2xl rounded-sm border border-white/5">
+                <div ref={invoiceRef} className="invoice-wrapper w-[800px] bg-[#0a0a0a] text-white p-14 shadow-2xl rounded-sm border border-white/5 relative">
                   
+                  {/* Decorative Accent Line (FEATURE 3: Accent Color) */}
+                  <div className="absolute top-0 left-0 w-full h-2" style={{ backgroundColor: data.accentColor === '#ffffff' ? '#333' : data.accentColor }}></div>
+
                   {/* Header */}
-                  <div className="mb-14 flex justify-between items-start">
+                  <div className="mb-14 pt-4 flex justify-between items-start">
                     <div>
                       {data.logoImage ? (
                         <img src={data.logoImage} alt="Logo" className="h-10 object-contain mb-6" />
                       ) : (
                         <div className="h-10 mb-6"></div>
                       )}
-                      <h1 className="text-5xl font-bold tracking-[0.2em] text-white">INVOICE</h1>
+                      <h1 className="text-5xl font-bold tracking-[0.2em]" style={{ color: data.accentColor }}>INVOICE</h1>
                     </div>
                   </div>
 
@@ -361,8 +352,8 @@
                       <p className="font-bold text-sm text-gray-100">{data.reference}</p>
                     </div>
                     <div className="col-span-2 text-right">
-                      <p className="text-gray-500 text-[10px] mb-2 uppercase tracking-widest font-semibold">Invoice of (USD)</p>
-                      <p className="text-4xl font-bold text-white">{formatCurrency(total)}</p>
+                      <p className="text-gray-500 text-[10px] mb-2 uppercase tracking-widest font-semibold">Invoice of ({data.currency})</p>
+                      <p className="text-4xl font-bold" style={{ color: data.accentColor }}>{formatCurrency(total)}</p>
                     </div>
                   </div>
 
@@ -384,7 +375,7 @@
 
                   {/* Items Table */}
                   <div className="mb-12">
-                    <div className="flex border-b border-gray-800 pb-3 mb-6">
+                    <div className="flex pb-3 mb-6" style={{ borderBottom: `1px solid ${data.accentColor === '#ffffff' ? '#333' : data.accentColor}` }}>
                       <div className="w-1/2 text-gray-500 text-[10px] uppercase tracking-widest font-semibold">Item Detail</div>
                       <div className="w-1/6 text-right text-gray-500 text-[10px] uppercase tracking-widest font-semibold">Qty</div>
                       <div className="w-1/6 text-right text-gray-500 text-[10px] uppercase tracking-widest font-semibold">Rate</div>
@@ -421,9 +412,9 @@
                         <span className="text-gray-400">Tax ({data.taxRate}%)</span>
                         <span className="text-gray-200">+{formatCurrency(taxAmount)}</span>
                       </div>
-                      <div className="flex justify-between py-3 bg-[#111] px-4 rounded mt-2">
+                      <div className="flex justify-between py-3 px-4 rounded mt-2" style={{ backgroundColor: data.accentColor === '#ffffff' ? '#111' : `${data.accentColor}20` }}>
                         <span className="font-bold text-lg text-white">Total</span>
-                        <span className="font-bold text-lg text-white">{formatCurrency(total)}</span>
+                        <span className="font-bold text-lg" style={{ color: data.accentColor }}>{formatCurrency(total)}</span>
                       </div>
                     </div>
                   </div>
